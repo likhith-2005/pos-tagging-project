@@ -1,0 +1,6 @@
+I/PRP am/VBP a/DT student/NN
+She/PRP is/VBZ reading/VBG a/DT book/NN
+The/DT boy/NN plays/VBZ football/NN
+They/PRP are/VBP happy/JJ
+He/PRP wrote/VBD a/DT letter/NN
+The/DT dog/NN runs/VBZ fast/RB

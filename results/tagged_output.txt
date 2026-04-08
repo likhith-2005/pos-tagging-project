@@ -1,0 +1,15 @@
+i/PRON am/NOUN likhith/UNK kagitha/UNK how/ADV can/AUX i/PRON help/VERB you/PRON
+I/PRON am/NOUN likhith/UNK kagitha/UNK how/ADV can/AUX i/PRON help/VERB you/PRON
+I/PRON am/NOUN a/DET robart/UNK
+I/PRON am/NOUN happy/ADJ to/PART share/VERB my/PRON project/NOUN
+i/PRON am/NOUN a/DET good/ADJ boy/NOUN
+She/PRON is/AUX playing/VERB cricket/UNK
+
+exit/NOUN
+
+stop/VERB
+
+"The/UNK quick/ADJ brown/NOUN fox/UNK jumps/VERB over/ADV the/DET lazy/ADJ dog,/UNK but/CCONJ it/PRON often/ADV misses/UNK the/DET mark./UNK Such/ADJ a/DET sudden,/UNK clever/UNK move/VERB creates/VERB great/ADJ excitement/UNK for/ADP the/DET watchers/NOUN nearby."/UNK
+"The/UNK quick/ADJ brown/NOUN fox/UNK jumps/VERB over/ADV the/DET lazy/ADJ dog,/UNK but/CCONJ it/PRON often/ADV misses/UNK the/DET mark./UNK Such/ADJ a/DET sudden,/UNK clever/UNK move/VERB creates/VERB great/ADJ excitement/UNK for/ADP the/DET watchers/NOUN nearby."/UNK
+"The/UNK quick/ADJ brown/NOUN fox/UNK jumps/VERB over/ADV the/DET lazy/ADJ dog,/UNK but/CCONJ it/PRON often/ADV misses/UNK the/DET mark./UNK Such/ADJ a/DET sudden,/UNK clever/UNK move/VERB creates/VERB great/ADJ excitement/UNK for/ADP the/DET watchers/NOUN nearby."/UNK
+stop/VERB
