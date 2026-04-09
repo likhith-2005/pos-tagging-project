@@ -1,22 +1,63 @@
-# -------- TAG MAP (same as pos_tagger.py) --------
-tag_map = {
-    "NOUN": "N", "PROPN": "N",
-    "VERB": "V", "AUX": "V",
-    "ADJ": "ADJ",
-    "ADV": "ADV",
-    "ADP": "P",
-    "DET": "D",
-    "PRON": "PR",
-    "CCONJ": "C", "SCONJ": "C",
-    "NUM": "NUM"
-}
+from pos_tagger import tag_with_rules, tag_with_context, tag_map
 
-# -------- TRAIN MODEL (same logic) --------
-word_tag = {}
+# -------- LOAD DATA --------
+correct_a1 = 0
+correct_a2 = 0
+total = 0
+
+# For Ground Truth Table (store sample)
+gt_words = []
+gt_actual = []
+gt_pred_a1 = []
+gt_pred_a2 = []
 
 with open("dataset/en_ewt-ud-train.conllu", "r", encoding="utf-8") as file:
+    sentence_words = []
+    sentence_tags = []
+
     for line in file:
         if line.startswith("#") or line.strip() == "":
+            
+            if sentence_words:
+                sentence = " ".join(sentence_words)
+
+                # Predictions
+                a1_tags = tag_with_rules(sentence)
+                a2_tags = tag_with_context(sentence)
+
+                for i in range(len(sentence_tags)):
+                    
+                    word = sentence_words[i]
+                    actual = sentence_tags[i]
+
+                    # Approach 1
+                    if i < len(a1_tags):
+                        pred1 = a1_tags[i]
+                        if pred1 == actual:
+                            correct_a1 += 1
+                    else:
+                        pred1 = "NA"
+
+                    # Approach 2
+                    if i < len(a2_tags):
+                        pred2 = a2_tags[i]
+                        if pred2 == actual:
+                            correct_a2 += 1
+                    else:
+                        pred2 = "NA"
+
+                    total += 1
+
+                    # Store only first 20 rows (for display)
+                    if len(gt_words) < 20:
+                        gt_words.append(word)
+                        gt_actual.append(actual)
+                        gt_pred_a1.append(pred1)
+                        gt_pred_a2.append(pred2)
+
+                sentence_words = []
+                sentence_tags = []
+
             continue
 
         parts = line.split("\t")
@@ -27,49 +68,31 @@ with open("dataset/en_ewt-ud-train.conllu", "r", encoding="utf-8") as file:
         ud_pos = parts[3]
         pos = tag_map.get(ud_pos, "X")
 
-        if word not in word_tag:
-            word_tag[word] = {}
+        sentence_words.append(word)
+        sentence_tags.append(pos)
 
-        if pos in word_tag[word]:
-            word_tag[word][pos] += 1
-        else:
-            word_tag[word][pos] = 1
 
-# Most frequent tag
-final_dict = {}
-for word in word_tag:
-    final_dict[word] = max(word_tag[word], key=word_tag[word].get)
+# -------- RESULTS --------
+a1_acc = (correct_a1 / total) * 100
+a2_acc = (correct_a2 / total) * 100
 
-# -------- EVALUATION --------
-correct = 0
-total = 0
+print("\n===== EVALUATION RESULTS =====")
+print("Total Words:", total)
 
-with open("dataset/en_ewt-ud-train.conllu", "r", encoding="utf-8") as file:
-    for line in file:
-        if line.startswith("#") or line.strip() == "":
-            continue
+print("\nApproach 1 (Rule-Based):")
+print("Correct:", correct_a1)
+print("Accuracy:", round(a1_acc, 2), "%")
 
-        parts = line.split("\t")
-        if len(parts) < 4:
-            continue
+print("\nApproach 2 (Context-Based):")
+print("Correct:", correct_a2)
+print("Accuracy:", round(a2_acc, 2), "%")
 
-        word = parts[1].lower()
+print("\nImprovement:", round(a2_acc - a1_acc, 2), "%")
 
-        # Actual tag (converted to your custom tag set)
-        ud_pos = parts[3]
-        actual = tag_map.get(ud_pos, "X")
 
-        # Predicted tag
-        predicted = final_dict.get(word, "UNK")
+# -------- GROUND TRUTH TABLE --------
+print("\n===== GROUND TRUTH TABLE (Sample) =====")
+print("Word\tActual\tA1_Pred\tA2_Pred")
 
-        total += 1
-
-        if predicted == actual:
-            correct += 1
-
-# -------- RESULT --------
-accuracy = (correct / total) * 100
-
-print("Total words:", total)
-print("Correct predictions:", correct)
-print("Accuracy:", round(accuracy, 2), "%")
+for w, a, p1, p2 in zip(gt_words, gt_actual, gt_pred_a1, gt_pred_a2):
+    print(f"{w}\t{a}\t{p1}\t{p2}")
