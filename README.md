@@ -28,5 +28,14 @@ This project implements multiple Part-of-Speech (POS) tagging models and compare
 
 ## ⚙️ How to Run
 
+### ▶ Run Basic Analysis
 ```bash
 python src/analysis.py
+
+python src/analysis_advanced.py
+
+python src/graph_analysis.py
+
+python src/crf_model.py
+
+python src/context_based_tagger.py
