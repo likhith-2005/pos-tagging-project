@@ -1,98 +1,74 @@
-from pos_tagger import tag_with_rules, tag_with_context, tag_map
+import sys
+import os
+sys.path.append(os.path.dirname(__file__))
 
-# -------- LOAD DATA --------
-correct_a1 = 0
-correct_a2 = 0
-total = 0
+from sklearn.metrics import accuracy_score
 
-# For Ground Truth Table (store sample)
-gt_words = []
-gt_actual = []
-gt_pred_a1 = []
-gt_pred_a2 = []
+from rule_based_tagger import rule_based_tag
+from hmm_tagger import hmm_tag
+from bilstm_tagger import bilstm_predict
+from crf_tagger import crf_predict
+from context_tagger import context_tag
 
-with open("dataset/en_ewt-ud-train.conllu", "r", encoding="utf-8") as file:
-    sentence_words = []
-    sentence_tags = []
-
-    for line in file:
-        if line.startswith("#") or line.strip() == "":
-            
-            if sentence_words:
-                sentence = " ".join(sentence_words)
-
-                # Predictions
-                a1_tags = tag_with_rules(sentence)
-                a2_tags = tag_with_context(sentence)
-
-                for i in range(len(sentence_tags)):
-                    
-                    word = sentence_words[i]
-                    actual = sentence_tags[i]
-
-                    # Approach 1
-                    if i < len(a1_tags):
-                        pred1 = a1_tags[i]
-                        if pred1 == actual:
-                            correct_a1 += 1
-                    else:
-                        pred1 = "NA"
-
-                    # Approach 2
-                    if i < len(a2_tags):
-                        pred2 = a2_tags[i]
-                        if pred2 == actual:
-                            correct_a2 += 1
-                    else:
-                        pred2 = "NA"
-
-                    total += 1
-
-                    # Store only first 20 rows (for display)
-                    if len(gt_words) < 20:
-                        gt_words.append(word)
-                        gt_actual.append(actual)
-                        gt_pred_a1.append(pred1)
-                        gt_pred_a2.append(pred2)
-
-                sentence_words = []
-                sentence_tags = []
-
-            continue
-
-        parts = line.split("\t")
-        if len(parts) < 4:
-            continue
-
-        word = parts[1].lower()
-        ud_pos = parts[3]
-        pos = tag_map.get(ud_pos, "X")
-
-        sentence_words.append(word)
-        sentence_tags.append(pos)
+from data_loader import load_data
 
 
-# -------- RESULTS --------
-a1_acc = (correct_a1 / total) * 100
-a2_acc = (correct_a2 / total) * 100
+# ---------------- LOAD DATA ----------------
+train_data, test_data = load_data()
 
-print("\n===== EVALUATION RESULTS =====")
-print("Total Words:", total)
-
-print("\nApproach 1 (Rule-Based):")
-print("Correct:", correct_a1)
-print("Accuracy:", round(a1_acc, 2), "%")
-
-print("\nApproach 2 (Context-Based):")
-print("Correct:", correct_a2)
-print("Accuracy:", round(a2_acc, 2), "%")
-
-print("\nImprovement:", round(a2_acc - a1_acc, 2), "%")
+X_test = [sentence for sentence, tags in test_data]
+y_test = [tags for sentence, tags in test_data]
 
 
-# -------- GROUND TRUTH TABLE --------
-print("\n===== GROUND TRUTH TABLE (Sample) =====")
-print("Word\tActual\tA1_Pred\tA2_Pred")
+# ---------------- MODEL FUNCTIONS ----------------
+def rule_model(sentences):
+    return [rule_based_tag(" ".join(sent)) for sent in sentences]
 
-for w, a, p1, p2 in zip(gt_words, gt_actual, gt_pred_a1, gt_pred_a2):
-    print(f"{w}\t{a}\t{p1}\t{p2}")
+def hmm_model(sentences):
+    return [hmm_tag(" ".join(sent)) for sent in sentences]
+
+def bilstm_model(sentences):
+    return [bilstm_predict(sent) for sent in sentences]
+
+def crf_model(sentences):
+    return [crf_predict(sent) for sent in sentences]
+
+def context_model(sentences):
+    return [context_tag(" ".join(sent)) for sent in sentences]
+
+
+# ---------------- ALL MODELS ----------------
+models = {
+    "Rule-Based": rule_model,
+    "HMM": hmm_model,
+    "BiLSTM": bilstm_model,
+    "CRF": crf_model,
+    "Context": context_model
+}
+
+
+# ---------------- EVALUATION ----------------
+def evaluate_model(model_func, X, y_true):
+    y_pred = model_func(X)
+
+    flat_true = []
+    flat_pred = []
+
+    for true_tags, pred_tags in zip(y_true, y_pred):
+        min_len = min(len(true_tags), len(pred_tags))
+        flat_true.extend(true_tags[:min_len])
+        flat_pred.extend(pred_tags[:min_len])
+
+    return accuracy_score(flat_true, flat_pred)
+
+
+# ---------------- RUN ----------------
+if __name__ == "__main__":
+    print("\n📊 MODEL EVALUATION RESULTS:\n")
+
+    for name, model in models.items():
+        try:
+            acc = evaluate_model(model, X_test, y_test)
+            print(f"✅ {name} Accuracy: {acc:.4f}")
+        except Exception as e:
+            print(f"❌ {name} Failed: {e}")

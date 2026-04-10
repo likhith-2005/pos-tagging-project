@@ -45,37 +45,89 @@ print("✅ Model trained successfully!")
 
 
 # =========================================
-# APPROACH 1: RULE-BASED
+# APPROACH 1: RULE-BASED (ADVANCED)
 # =========================================
 def tag_with_rules(sentence):
-    words = re.findall(r"\b\w+\b", sentence.lower())
-    tags = []
+    words = re.findall(r"\b\w+\b", sentence)
+    tagged = []
 
     for w in words:
-        if w.endswith("ing"):
-            tag = "V"
-        elif w.endswith("ly"):
-            tag = "ADV"
-        elif w in ["a", "an", "the"]:
+        wl = w.lower()
+
+        # 1. Pronouns
+        if wl in ["i","you","he","she","it","we","they","me","him","her","us","them"]:
+            tag = "PR"
+
+        # 2. Determiners
+        elif wl in ["a","an","the","this","that","these","those"]:
             tag = "D"
+
+        # 3. Prepositions
+        elif wl in ["in","on","at","to","from","with","by","for","of","over","under"]:
+            tag = "P"
+
+        # 4. Auxiliary / Modal Verbs
+        elif wl in ["is","am","are","was","were","be","been","being",
+                    "have","has","had","do","does","did",
+                    "will","shall","can","could","may","might","must","should","would"]:
+            tag = "V"
+
+        # 5. Conjunctions
+        elif wl in ["and","or","but","because","although","if","while"]:
+            tag = "C"
+
+        # 6. Negation
+        elif wl in ["not","no","never"]:
+            tag = "ADV"
+
+        # 7. Verb suffix
+        elif wl.endswith("ing") or wl.endswith("ed"):
+            tag = "V"
+
+        # 8. Adverbs
+        elif wl.endswith("ly"):
+            tag = "ADV"
+
+        # 9. Adjectives (suffix)
+        elif wl.endswith(("ous","ful","able","ible","al","ive","ic")):
+            tag = "ADJ"
+
+        # 10. Comparative / Superlative
+        elif wl.endswith("er") or wl.endswith("est"):
+            tag = "ADJ"
+
+        # 11. Numbers
+        elif wl.isdigit():
+            tag = "NUM"
+
+        # 12. Proper noun
+        elif w[0].isupper():
+            tag = "N"
+
+        # 13. Plural nouns
+        elif wl.endswith("s"):
+            tag = "N"
+
+        # 14. Default
         else:
             tag = "N"
 
-        tags.append(tag)
+        tagged.append((w, tag))
 
-    return tags
+    return tagged
 
 
 # =========================================
-# APPROACH 2: CONTEXT-BASED
+# APPROACH 2: CONTEXT-BASED (IMPROVED)
 # =========================================
 def tag_with_context(sentence):
     words = re.findall(r"\b\w+\b", sentence.lower())
-    tags = []
+    tagged = []
 
     for i, w in enumerate(words):
         tag = final_dict.get(w, "N")
 
+        # Ambiguity handling
         if w == "book":
             if i + 1 < len(words):
                 next_word = words[i + 1]
@@ -83,12 +135,17 @@ def tag_with_context(sentence):
                 if next_tag == "N":
                     tag = "V"
 
-        if w in ["is", "am", "are", "was", "were"]:
+        # Verb corrections
+        if w in ["is","am","are","was","were","will","shall"]:
             tag = "V"
 
-        tags.append(tag)
+        # Determiner correction
+        if w in ["a","an","the"]:
+            tag = "D"
 
-    return tags
+        tagged.append((w, tag))
+
+    return tagged
 
 
 # =========================================
@@ -106,12 +163,11 @@ with open("dataset/en_ewt-ud-train.conllu", "r", encoding="utf-8") as file, \
             if sentence_words:
                 sentence = " ".join(sentence_words)
 
-                tags1 = tag_with_rules(sentence)
-                tags2 = tag_with_context(sentence)
+                tagged1 = tag_with_rules(sentence)
+                tagged2 = tag_with_context(sentence)
 
-                for w, t1, t2 in zip(sentence_words, tags1, tags2):
-                    out1.write(f"{w} {t1}\n")
-                    out2.write(f"{w} {t2}\n")
+                out1.write(" ".join([f"{w}/{t}" for w, t in tagged1]) + "\n")
+                out2.write(" ".join([f"{w}/{t}" for w, t in tagged2]) + "\n")
 
                 sentence_words = []
 
@@ -121,35 +177,25 @@ with open("dataset/en_ewt-ud-train.conllu", "r", encoding="utf-8") as file, \
         if len(parts) < 2:
             continue
 
-        word = parts[1].lower()
+        word = parts[1]
         sentence_words.append(word)
 
 print("✅ Output files generated successfully!")
 
 
 # =========================================
-# MANUAL INPUT + SAVE
+# MANUAL INPUT
 # =========================================
 if __name__ == "__main__":
 
-    with open("results/manual_output.txt", "w", encoding="utf-8") as out:
+    while True:
+        sentence = input("\nEnter a sentence (type exit to stop): ").strip()
 
-        while True:
-            sentence = input("\nEnter a sentence (type exit to stop): ").strip()
+        if sentence.lower() == "exit":
+            break
 
-            if sentence.lower() == "exit":
-                break
+        tagged1 = tag_with_rules(sentence)
+        tagged2 = tag_with_context(sentence)
 
-            words = re.findall(r"\b\w+\b", sentence.lower())
-
-            tags1 = tag_with_rules(sentence)
-            tags2 = tag_with_context(sentence)
-
-            print("\nApproach 1:", list(zip(words, tags1)))
-            print("Approach 2:", list(zip(words, tags2)))
-
-            # Save context-based output
-            for w, t in zip(words, tags2):
-                out.write(f"{w} {t}\n")
-
-        print("✅ Manual input saved!")
+        print("\nRule-Based:", tagged1)
+        print("Context-Based:", tagged2)

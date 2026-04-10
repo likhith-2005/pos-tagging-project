@@ -2,14 +2,14 @@ import sys
 import os
 sys.path.append(os.path.dirname(__file__))
 
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
 from rule_based_tagger import rule_based_tag
 from Hidden_Markov_Model import hmm_tag
 from bilstm_tagger import bilstm_predict
 from crf_model import crf_predict
 from context_based_tagger import tag_with_context as context_tag
-from custom_tagset import custom_tag   # ✅ NEW MODEL
+from custom_tagset import custom_tag
 
 from data_loader import load_data
 
@@ -17,7 +17,7 @@ from data_loader import load_data
 # -------- LOAD DATA --------
 train_data, test_data = load_data()
 
-# ⚡ LIMIT FOR SPEED
+# ⚡ limit for speed
 X_test = [sentence for sentence, tags in test_data][:200]
 y_test = [tags for sentence, tags in test_data][:200]
 
@@ -36,29 +36,20 @@ def crf_model(X):
     return [crf_predict(" ".join(sent)) for sent in X]
 
 def context_model(X):
-    result = []
-    for sent in X:
-        pred = context_tag(" ".join(sent))
-
-        # ✅ ensure flat list
-        if isinstance(pred, list) and len(pred) > 0 and isinstance(pred[0], list):
-            pred = [p[0] for p in pred]
-
-        result.append(pred)
-    return result
+    return [context_tag(" ".join(sent)) for sent in X]
 
 def custom_model(X):
     return [custom_tag(" ".join(sent)) for sent in X]
 
 
-# -------- ALL MODELS --------
+# -------- MODELS --------
 models = {
     "Rule-Based": rule_model,
     "HMM": hmm_model,
     "BiLSTM": bilstm_model,
     "CRF": crf_model,
     "Context": context_model,
-    "Custom Tagset": custom_model   # ✅ added
+    "Custom Tagset": custom_model
 }
 
 
@@ -74,24 +65,47 @@ def evaluate(model_func):
         true_tags.extend(t[:m])
         pred_tags.extend(p[:m])
 
-    return accuracy_score(true_tags, pred_tags)
+    return true_tags, pred_tags
 
 
 # -------- RUN --------
 if __name__ == "__main__":
-    print("\n📊 MODEL ANALYSIS RESULTS:\n")
+    print("\n📊 ADVANCED MODEL ANALYSIS:\n")
 
     results = {}
 
     for name, model in models.items():
         try:
-            print(f"🔄 Running {name}...")
-            acc = evaluate(model)
-            results[name] = acc
-            print(f"✅ {name}: {acc:.4f}\n")
-        except Exception as e:
-            print(f"❌ {name} failed: {e}\n")
+            print(f"\n🔄 Running {name}...")
 
-    print("\n🎯 FINAL COMPARISON:\n")
-    for k, v in results.items():
-        print(f"{k} → {v:.4f}")
+            true_tags, pred_tags = evaluate(model)
+
+            acc = accuracy_score(true_tags, pred_tags)
+            results[name] = acc
+
+            print(f"✅ Accuracy: {acc:.4f}")
+
+            # 📊 Classification Report
+            print("\n📊 Classification Report:")
+            print(classification_report(true_tags, pred_tags))
+
+            # 📊 Confusion Matrix
+            print("\n📊 Confusion Matrix:")
+            print(confusion_matrix(true_tags, pred_tags))
+
+            # ❌ Error Example
+            print("\n❌ Sample Error:")
+            for t, p in zip(true_tags, pred_tags):
+                if t != p:
+                    print(f"Actual: {t}, Predicted: {p}")
+                    break
+
+        except Exception as e:
+            print(f"❌ {name} failed: {e}")
+
+    # 🏆 Ranking
+    print("\n🏆 MODEL RANKING:")
+    sorted_results = sorted(results.items(), key=lambda x: x[1], reverse=True)
+
+    for i, (model, score) in enumerate(sorted_results, 1):
+        print(f"{i}. {model} → {score:.4f}")
