@@ -4,11 +4,12 @@ sys.path.append(os.path.dirname(__file__))
 
 from sklearn.metrics import accuracy_score
 
+# ✅ MATCH YOUR FUNCTION NAMES
 from rule_based_tagger import rule_based_tag
-from hmm_tagger import hmm_tag
+from context_based_tagger import tag_with_context
 from bilstm_tagger import bilstm_predict
-from crf_tagger import crf_predict
-from context_tagger import context_tag
+from crf_model import crf_predict
+from hmm_tagger import hmm_predict
 
 from data_loader import load_data
 
@@ -20,30 +21,45 @@ X_test = [sentence for sentence, tags in test_data]
 y_test = [tags for sentence, tags in test_data]
 
 
-# ---------------- MODEL FUNCTIONS ----------------
+# ---------------- HELPER ----------------
+def extract_tags(output):
+    if len(output) == 0:
+        return []
+
+    if isinstance(output[0], tuple):
+        return [tag for word, tag in output]
+    else:
+        return output
+
+
+# ---------------- MODEL WRAPPERS ----------------
 def rule_model(sentences):
-    return [rule_based_tag(" ".join(sent)) for sent in sentences]
+    return [extract_tags(rule_based_tag(" ".join(sent))) for sent in sentences]
 
-def hmm_model(sentences):
-    return [hmm_tag(" ".join(sent)) for sent in sentences]
-
-def bilstm_model(sentences):
-    return [bilstm_predict(sent) for sent in sentences]
-
-def crf_model(sentences):
-    return [crf_predict(sent) for sent in sentences]
 
 def context_model(sentences):
-    return [context_tag(" ".join(sent)) for sent in sentences]
+    return [extract_tags(tag_with_context(" ".join(sent))) for sent in sentences]
 
 
-# ---------------- ALL MODELS ----------------
+def hmm_model(sentences):
+    return [extract_tags(hmm_predict(" ".join(sent))) for sent in sentences]
+
+
+def crf_model_func(sentences):
+    return [extract_tags(crf_predict(" ".join(sent))) for sent in sentences]
+
+
+def bilstm_model(sentences):
+    return [extract_tags(bilstm_predict(" ".join(sent))) for sent in sentences]
+
+
+# ---------------- MODELS ----------------
 models = {
     "Rule-Based": rule_model,
+    "Context-Based": context_model,
     "HMM": hmm_model,
-    "BiLSTM": bilstm_model,
-    "CRF": crf_model,
-    "Context": context_model
+    "CRF": crf_model_func,
+    "BiLSTM": bilstm_model
 }
 
 

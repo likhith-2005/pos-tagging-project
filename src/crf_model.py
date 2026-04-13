@@ -1,8 +1,6 @@
 import re
 import sklearn_crfsuite
-from sklearn_crfsuite import metrics
 from data_loader import read_conllu
-
 
 # ---------------- CLEAN INPUT ----------------
 def clean_sentence(sentence):
@@ -25,7 +23,6 @@ def word2features(sent, i):
         'word.istitle()': word.istitle(),
         'word.isdigit()': word.isdigit(),
         'word.isalpha()': word.isalpha(),
-        'has_bracket': '(' in word or ')' in word,
         'word.length': len(word),
     }
 
@@ -58,31 +55,15 @@ def sent2labels(sent):
     return [tag for word, tag in sent]
 
 
-# ---------------- POST PROCESS ----------------
-def post_process(words, tags):
-    corrected = []
-
-    for w, t in zip(words, tags):
-        if w in ['(', ')']:
-            corrected.append('PUNCT')
-        elif w.upper() in ['HMM', 'CRF']:
-            corrected.append('PROPN')
-        elif w.lower() == 'vs':
-            corrected.append('CCONJ')
-        else:
-            corrected.append(t)
-
-    return corrected
-
-
 # ---------------- GLOBAL MODEL ----------------
 crf_model = None
 
 
+# ---------------- TRAIN ----------------
 def train_crf():
     global crf_model
 
-    print("Loading dataset...")
+    print("🚀 Loading dataset...")
     train_data = read_conllu("dataset/en_ewt-ud-train.conllu")
 
     X_train = [sent2features(s) for s in train_data]
@@ -92,32 +73,47 @@ def train_crf():
         algorithm='lbfgs',
         c1=0.1,
         c2=0.1,
-        max_iterations=150,
+        max_iterations=100,
         all_possible_transitions=True
     )
 
-    print("Training CRF model...")
+    print("🚀 Training CRF model...")
     crf_model.fit(X_train, y_train)
 
+    print("✅ CRF training completed!")
 
-# ---------------- PREDICT FUNCTION ----------------
+
+# ---------------- PREDICT ----------------
 def crf_predict(sentence):
     global crf_model
 
     if crf_model is None:
         train_crf()
 
-    # ✅ FIX: handle list input
-    if isinstance(sentence, list):
-        sentence = " ".join(sentence)
-
     sentence = clean_sentence(sentence)
-    words = sentence.split()
+    words = re.findall(r"\b\w+\b", sentence.lower())
 
     sent = [(w, '') for w in words]
-    features = [word2features(sent, i) for i in range(len(sent))]
+    features = sent2features(sent)
 
     prediction = crf_model.predict([features])[0]
-    prediction = post_process(words, prediction)
 
-    return prediction
+    # ✅ RETURN CORRECT FORMAT
+    return [(w, t) for w, t in zip(words, prediction)]
+
+
+# ---------------- MAIN ----------------
+if __name__ == "__main__":
+
+    print("\n🚀 CRF POS Tagger Ready!")
+
+    while True:
+        sentence = input("\nEnter sentence (type exit): ").strip()
+
+        if sentence.lower() == "exit":
+            break
+
+        result = crf_predict(sentence)
+
+        print("\nCRF Output:")
+        print(" ".join([f"{w}/{t}" for w, t in result]))

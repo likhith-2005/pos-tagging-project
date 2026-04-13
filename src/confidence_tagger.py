@@ -4,7 +4,6 @@ from bilstm_tagger import bilstm_predict
 from rule_based_tagger import rule_based_tag
 from context_based_tagger import tag_with_context
 
-
 # =========================================
 # TAG NORMALIZATION (VERY IMPORTANT ⭐)
 # =========================================
